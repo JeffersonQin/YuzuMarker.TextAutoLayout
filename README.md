@@ -4,7 +4,7 @@
 
 # 模型概述
 
-## 2021/09/24 v1
+## [DEPRECATED] 2021/09/24 OOM (Overlaping Oriented Model)
 
 * 本模型仅讨论文本块为水平或者竖直的情况，更复杂的情况将在以后进行讨论
 * 下文中假设文本为竖排，横排情况类似，不做过多讨论
@@ -29,13 +29,12 @@
 
 经过处理，我们能够得到一个大致准确的文本位置的点集![](https://latex.codecogs.com/svg.latex?T)，为了方便地计算损失函数，我们不妨假设其在纵向是一个凸图形，然后将其表示为形如
 
-![](https://latex.codecogs.com/svg.latex?T^*=[(0,y_{1s},y_{1e}),(1,y_{2s},y_{2e}),...,(n,y_{ns},y_{ne})])
+![](https://latex.codecogs.com/svg.latex?T^*=[(y_{0s},y_{0e}),(y_{1s},y_{e}),...,(y_{ns},y_{ne})])
 
 的形式。上述式子的含义是将其描述为列的集合的形式，而每列又可以表示为列的横坐标和开始和结束的纵坐标的形式（因为我们假设他是凸图形），如果文字是横排的，那只需要假设在横向是凸图形，然后可以得到一个类似的式子，这里就不作展开了。
 
 注意：
-* 如果一列没有任何像素，那这一列的表达记作![](https://latex.codecogs.com/svg.latex?(x,0,0))
-* 这里我们用的横坐标记号是![](https://latex.codecogs.com/svg.latex?0...n)，也就是横跨整张图的横坐标，之所以这样做也是为了计算损失函数时可以直接以矩阵的形式计算，然后搭配自动求导框架可以帮助我们自动更新参数。当然，我们也可以进行优化，即框定一个更小的区域，然后计算那个区域中的相对坐标，可以节省计算资源。这是后话。
+* 如果一列没有任何像素，那这一列的表达记作![](https://latex.codecogs.com/svg.latex?(\text{y-max},0))。之所以这么做是因为方便进行比较。
 
 ### 排版计算函数
 
@@ -86,14 +85,14 @@
 例子：
 
 <div align="center">
-	<img src="./imgs/layout-1.svg">
+	<img src="./assets/layout-1.svg">
 </div>
 
 将![](https://latex.codecogs.com/svg.latex?A)扩展到整个图像大小长度的矩阵![](https://latex.codecogs.com/svg.latex?A^*)来得到与![](https://latex.codecogs.com/svg.latex?T^*)类似的结果：
 
-![](https://latex.codecogs.com/svg.latex?\forall{i\in[0,|\vec{c}|\)},\forall{j\in{[0,l_f+d\)}},k=x-i\times{(l_f+d)})时
+![](https://latex.codecogs.com/svg.latex?\forall{i\in[0,|\vec{c}|\)},\forall{j\in{[0,l_f\)}},k=x-i\times{(l_f+d)})时
 
-![](https://latex.codecogs.com/svg.latex?A^*(\vec\theta,\vec{c})_{j-k}=(j-k,y,y+\sum_{a=c_{i-1}}^{c_i-1}f(t(a))))
+![](https://latex.codecogs.com/svg.latex?A^*(\vec\theta,\vec{c})_{k-j}=(y,y+\sum_{a=c_{i-1}}^{c_i-1}f(t(a))))
 
 其他情况下：
 
@@ -105,17 +104,17 @@
 
 ![](https://latex.codecogs.com/svg.latex?L(\vec\theta,\vec{c})=\displaystyle\frac{A^*\cap{T^*}}{A^*\cup{T^*}}=\sum_i\frac{A_i^*\cap{T_i^*}}{A_i^*\cup{T_i^*}})
 
-现在定义![](https://latex.codecogs.com/svg.latex?(x,a,b),(x,c,d))间的![](https://latex.codecogs.com/svg.latex?\cap,\cup)运算：当![](https://latex.codecogs.com/svg.latex?d-a>0,b-c>0)同时成立时：
+现在定义![](https://latex.codecogs.com/svg.latex?(a,b),(c,d))间的![](https://latex.codecogs.com/svg.latex?\cap,\cup)运算：当![](https://latex.codecogs.com/svg.latex?d-a>0,b-c>0)同时成立时（且![](https://latex.codecogs.com/svg.latex?(a,b),(c,d))都是合法区间，初始化时的![](https://latex.codecogs.com/svg.latex?(\text{y-max},0))就是非法区间）：
 
-![](https://latex.codecogs.com/svg.latex?(x,a,b)\cap(x,c,d)=\min(d-a,b-c))
+![](https://latex.codecogs.com/svg.latex?(a,b)\cap(c,d)=\min(d-a,b-c))
 
-![](https://latex.codecogs.com/svg.latex?(x,a,b)\cup(x,c,d)=\max(d-a,b-c)=(b-a)+(d-c)+(x,a,b)\cap(x,c,d))
+![](https://latex.codecogs.com/svg.latex?(a,b)\cup(c,d)=\max(d-a,b-c)=(b-a)+(d-c)+(a,b)\cap(c,d))
 
 若条件不成立，则：
 
-![](https://latex.codecogs.com/svg.latex?(x,a,b)\cap(x,c,d)=0)
+![](https://latex.codecogs.com/svg.latex?(a,b)\cap(c,d)=0)
 
-![](https://latex.codecogs.com/svg.latex?(x,a,b)\cup(x,c,d)=(b-a)+(d-c))
+![](https://latex.codecogs.com/svg.latex?(a,b)\cup(c,d)=(b-a)+(d-c))
 
 总结一下，我们就是计算两个区域交和并的比来计算重合程度，我们希望这个值![](https://latex.codecogs.com/svg.latex?L)尽可能逼近![](https://latex.codecogs.com/svg.latex?1)
 
@@ -129,7 +128,7 @@
 
 ### 关于是否可导的讨论
 
-出了重合度函数中去最小值和判断的问题，其他过程均为可导。虽然有不连续的地方，但我们仍然可以用梯度上升进行优化，具体可以参考SVM的损失函数。此时自动求导框架的导数即为分析导数。如果届时对结果不甚满意，可以通过模拟导数进行校验。
+无法分析。但是仍旧尝试用梯度上升来优化。我们没办法使用自动求导框架，因为这个过程不支持反向传播。
 
 ### 参考资料和启发
 
@@ -138,3 +137,24 @@
 * RCF网络损失函数实现: https://github.com/balajiselvaraj1601/RCF_Pytorch_Updated/blob/master/functions.py
 * loss函数没导数怎么办？: https://www.zhihu.com/question/268163416
 * 如何判断两条轨迹（或曲线）的相似度？: https://www.zhihu.com/question/27213170
+
+### 实验
+
+见 [oom/notebook.notebook.ipynb](./oom/notebook.notebook.ipynb) 。下面是一个例子：
+
+* `epoch`: 100
+* `L`: 55%
+* `time`: 27.7 s
+* `alpha`: 15
+
+Accuracy:
+
+![](./assets/oom-accur.png)
+
+Result:
+
+![](./assets/oom-result.png)
+
+### 结论
+
+估算错误，不能自动求导，参数更新速度慢，效果不理想，接下来准备抛弃以重叠为衡量指标的方法。
