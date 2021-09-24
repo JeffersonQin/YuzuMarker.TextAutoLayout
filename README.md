@@ -140,7 +140,7 @@
 
 ### 实验
 
-见 [oom/notebook.notebook.ipynb](./oom/notebook.notebook.ipynb) 。下面是一个例子：
+见 [oom/notebook.ipynb](./oom/notebook.ipynb) 。下面是一个例子：
 
 * `epoch`: 100
 * `L`: 55%
