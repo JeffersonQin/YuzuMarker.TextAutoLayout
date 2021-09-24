@@ -41,9 +41,9 @@
 
 有非常多的决定排版位置的因素，这里我们选取几个重要的、可推广的因素：
 * 起始横坐标 (文本最右侧的横坐标) ![](https://latex.codecogs.com/svg.latex?x)
-* 每一列的起始纵坐标 (文本最右侧的纵坐标) ![](https://latex.codecogs.com/svg.latex?\vec{y})
+* 起始纵坐标 (文本最右侧的纵坐标) ![](https://latex.codecogs.com/svg.latex?y)
 * 文本换行位置 (这个我们将重点讨论)
-* 字体大小，在这里我们取每个字占的像素个数 ![](https://latex.codecogs.com/svg.latex?l_f)
+* 字体大小，在这里我们取每个**全角字符**占的像素个数 ![](https://latex.codecogs.com/svg.latex?l_f)
 * 文本间距，这里我们取两列字间的空隙像素个数 ![](https://latex.codecogs.com/svg.latex?d)
 
 接下来我将先讨论文本换行位置，换行位置可以有多种表达形式：
@@ -61,11 +61,15 @@
 * 列的数量 ![](https://latex.codecogs.com/svg.latex?k)
 * 列的最长字符数量 ![](https://latex.codecogs.com/svg.latex?m)
 
-基于上面两个约束条件，我们可以给出所有可能的情况枚举，记为![](https://latex.codecogs.com/svg.latex?C)。接下来，我们正对每个字符串分割情况进行讨论，字符串分割记作![](https://latex.codecogs.com/svg.latex?\vec{c})，这里的编码使用上面的第一种编码，即这个多维向量的每一维记录这一列有多少个字。
+基于上面两个约束条件，我们可以给出所有可能的情况枚举，记为![](https://latex.codecogs.com/svg.latex?C)。
 
-总结一下，我们现在可以用![](https://latex.codecogs.com/svg.latex?x,\vec{y},l_f,d,\vec{c})来建立排版函数，除![](https://latex.codecogs.com/svg.latex?\vec{c})外都是需要优化的参数，所以记：
+注意：由于文本有时还会根据需要进行换行（例如停顿、语义的分割），所以跟多的时候，![](https://latex.codecogs.com/svg.latex?\vec{c})可能由用户给出，或者用户给出部分剖分结果。
 
-![](https://latex.codecogs.com/svg.latex?\vec\theta=(x,\vec{y},l_f,d)) 为参数
+接下来，我们正对每个字符串分割情况进行讨论，字符串分割记作![](https://latex.codecogs.com/svg.latex?\vec{c})，这里的编码使用上面的第二种编码，记录剖分所在位置，![](https://latex.codecogs.com/svg.latex?[c_{i-1},c_i\))就代表第![](https://latex.codecogs.com/svg.latex?i)个剖分的区间（采用左闭右开）。
+
+总结一下，我们现在可以用![](https://latex.codecogs.com/svg.latex?x,y,l_f,d,\vec{c})来建立排版函数，除![](https://latex.codecogs.com/svg.latex?\vec{c})外都是需要优化的参数，所以记：
+
+![](https://latex.codecogs.com/svg.latex?\vec\theta=(x,y,l_f,d)) 为参数
 
 设排版面积函数为：
 
@@ -73,13 +77,23 @@
 
 这个函数的结果与![](https://latex.codecogs.com/svg.latex?\vec{c})的维度相同，记录每行的横坐标和纵坐标的起始结束位置：
 
-![](https://latex.codecogs.com/svg.latex?A(\vec\theta,\vec{c})_i=(x-i\times{(l_f+d)},y_i,y_i+c_i\times{l_f}))
+![](https://latex.codecogs.com/svg.latex?A(\vec\theta,\vec{c})_i=(x-i\times{(l_f+d)},y,y+\sum_{a=c_{i-1}}^{c_i-1}f(t(a))))
+
+注意：
+* 上面我们引入了![](https://latex.codecogs.com/svg.latex?f(t))和![](https://latex.codecogs.com/svg.latex?t(a))，分别用来表示字符![](https://latex.codecogs.com/svg.latex?t)的像素大小函数和位置![](https://latex.codecogs.com/svg.latex?a)的字符![](https://latex.codecogs.com/svg.latex?t)。之所以这么做，是因为我们会遇到符号、空格等并非全角的情况。
+* 对于某些字符子串，如：西文、连续符号、特殊符号等（都是字符长度超过![](https://latex.codecogs.com/svg.latex?1)但是最终渲染长度是![](https://latex.codecogs.com/svg.latex?1)	的情况），会进行预处理，并在计算时被替换成`UTF-8`占位符，例如：`\u0000`, `\u0001` 等。
+
+例子：
+
+<div align="center">
+	<img src="./imgs/layout-1.svg">
+</div>
 
 将![](https://latex.codecogs.com/svg.latex?A)扩展到整个图像大小长度的矩阵![](https://latex.codecogs.com/svg.latex?A^*)来得到与![](https://latex.codecogs.com/svg.latex?T^*)类似的结果：
 
 ![](https://latex.codecogs.com/svg.latex?\forall{i\in[0,|\vec{c}|\)},\forall{j\in{[0,l_f+d\)}},k=x-i\times{(l_f+d)})时
 
-![](https://latex.codecogs.com/svg.latex?A^*(\vec\theta,\vec{c})_{j-k}=(j-k,y_i,y_i+c_i\times{l_f}))
+![](https://latex.codecogs.com/svg.latex?A^*(\vec\theta,\vec{c})_{j-k}=(j-k,y,y+\sum_{a=c_{i-1}}^{c_i-1}f(t(a))))
 
 其他情况下：
 
@@ -115,4 +129,12 @@
 
 ### 关于是否可导的讨论
 
+出了重合度函数中去最小值和判断的问题，其他过程均为可导。虽然有不连续的地方，但我们仍然可以用梯度上升进行优化，具体可以参考SVM的损失函数。此时自动求导框架的导数即为分析导数。如果届时对结果不甚满意，可以通过模拟导数进行校验。
+
 ### 参考资料和启发
+
+* L1正则和max函数的可导性？: https://www.zhihu.com/question/275630890
+* CS231n笔记|3 损失函数和最优化: https://zhuanlan.zhihu.com/p/41679108
+* RCF网络损失函数实现: https://github.com/balajiselvaraj1601/RCF_Pytorch_Updated/blob/master/functions.py
+* loss函数没导数怎么办？: https://www.zhihu.com/question/268163416
+* 如何判断两条轨迹（或曲线）的相似度？: https://www.zhihu.com/question/27213170
