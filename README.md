@@ -102,7 +102,7 @@
 
 其他情况下：
 
-![](https://latex.codecogs.com/svg.latex?A^*(\vec\theta,\vec{c})_p=(p,0,0))
+![](https://latex.codecogs.com/svg.latex?A^*(\vec\theta,\vec{c})_p=(0,0))
 
 ### 计算重合度指标
 
